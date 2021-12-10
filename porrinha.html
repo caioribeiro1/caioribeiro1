@@ -1,0 +1,295 @@
+<head>
+    <title>Porrinha</title>
+</head>
+<body>
+    <input type="button" value="Mostrar Estatísticas" onclick="showStats()"/>
+    <input type="button" value="Jogar Novamente" onClick="document.location.reload(true)">
+</body>
+<meta charset='UTF-8'>
+<script>
+/* Porrinha:
+Cada jogador começa com 3 palitos.
+
+As rodadas alternam em quem começa chutando.
+(0 -> 1 -> 2 -> 3)
+(1 -> 2 -> 3 -> 0)
+(2 -> 3 -> 0 -> 1)
+(3 -> 0 -> 1 -> 2)...
+
+O objetivo de cada rodada é chutar a soma de palitos nas mãos de cada jogador.
+
+Quem acertar tira 1 palito. 
+
+Ganha quem conseguir zerar sua quantidade de palitos.
+*/
+var player = {'name': '', 'palitos': 3, 'holding': 0, 'guess': -1};
+var validchars = 'aAãÃáÁbBcCçÇdDeEéÉêÊfFgGhHiIjJkKlLmMnNoOóÓôÔõÕpPqQrRsStTuUvVwWxXyYzZ';
+var validName;
+do {
+    validName = true;
+    player.name = prompt('Digite seu nome');
+    if (player.name.length < 2){
+        validName = false;
+        window.alert('Nome inválido.');
+        break;
+    }
+    for (let i=0;i<player.name.length;i++){
+        if (validchars.includes(player.name[i]) == false){
+            window.alert('Nome inválido.');
+            validName = false;
+            break;
+        }
+    }
+} while (!validName);
+
+player.name = player.name.toLowerCase();
+player.name = capitalize(player.name);
+
+var playersInGame = [player];
+
+window.confirm(`Bem-vindo, ${player.name}!`)
+window.confirm('REGRAS DO JOGO\n\nNeste jogo você começa com 3 palitos.\n\n'+
+            'A cada rodada você primeiro deve escolher com quantos palitos quer jogar entre 0 e o número de palitos que você tem.'+
+            '\n\nA segunda parte do jogo consiste em chutar a quantidade de palitos totais que estão em jogo na rodada.\nNão é permitido repetir chutes.'+
+            '\n\nQuem acertar tira um palito.\n\nGanha quem zerar a quantidade de palitos!');
+window.confirm('Bom jogo!');
+
+
+var totalCpus = parseFloat(prompt('Escolha o número de jogadores (CPUs)\nMínimo: 2\nMáximo: 5'));
+//checa se o input foi um numero inteiro
+//Alerta mensagem de erro de o input tiver sido uma string ou um numero real
+while (isNaN(totalCpus) || totalCpus%1 != 0 || totalCpus > 5 || totalCpus < 2){
+    window.confirm('Input inválido');
+    var totalCpus = parseFloat(prompt('Escolha o número de jogadores (CPUs)\nMínimo: 2\nMáximo: 5'));
+}
+
+//declaração das cpus 
+var cpuNames = ['Robesvaldo', 'Jujuba', 'Mirella', 'Atila', 'Lucas', 'Luana', 'Paulinha'];
+for (let i=0;i<totalCpus;i++){
+    var newCpu = {'name': '', 'palitos': 3, 'holding': 0, 'guess': -1};
+    var index = getRandomInt(0, cpuNames.length - 1)
+    newCpu.name = cpuNames[index]; //cpuNames[3] = 'Levi Adão'
+    cpuNames.splice(index, 1);
+    playersInGame.push(newCpu);
+}
+
+var playersNames = '';
+for (let i=0;i<playersInGame.length;i++){
+    playersNames += `${playersInGame[i].name}\n`
+}
+
+window.confirm(`Jogadores:\n\n${playersNames}`);
+
+
+//Início do jogo 
+
+
+//pega a quantidade de palitos totais no jogo
+var palitosInTotal = 0;
+for (let i=0;i<playersInGame.length;i++){
+    palitosInTotal += playersInGame[i].palitos;
+}
+
+// verificar se existe um vencedor, ou seja
+// se alguém chegou a zero palitos 
+var noGameWinner = true;
+var gameWinner;
+function checkGameWinner(){
+    for (let i=0;i<playersInGame.length;i++){
+        if (playersInGame[i].palitos == 0){
+            noGameWinner = false;
+            window.alert(`${playersInGame[i].name.toUpperCase()} VENCEU O JOGO!`);
+            gameWinner = playersInGame[i].name;
+        }
+    }
+}
+
+//contagem da quantidade de rounds jogados
+var rounds = 0;
+//variável para verificar posteriormente quem será o primeiro a jogar na rodada
+var firstToPlay = 0;
+
+//loop do jogo
+while (noGameWinner){
+
+    rounds++;
+    window.confirm(`Rodada ${rounds}`);
+    console.log('RODADA ' + rounds);
+    
+    //loop para pegar a quantidade que cada um está segurando
+    for (let i=0;i<playersInGame.length;i++){
+        if (playersInGame[i] == player){
+            playersInGame[i].holding = getPlayerHolding(playersInGame[i].palitos);
+        }
+        else {
+            playersInGame[i].holding = getCpuHolding(playersInGame[i].palitos);
+        }
+    }
+
+    //Chutes dos jogadores
+    // 0 1 2 
+    // 1 2 0
+    // 2 0 1
+    // 0 1 2
+    let leftToPlay = playersInGame.length;
+    for (let i=firstToPlay,k=0;k<leftToPlay;k++){  
+        //variavel para checar se os chutes são validos
+        let validGuess;
+        if (i > 0 && k === 0){
+            for (;i<playersInGame.length;i++){
+                do {
+                    validGuess = true;
+                    playersInGame[i].guess = getRandomInt(playersInGame[i].holding, palitosInTotal);
+                    for (let j=0;j<playersInGame.length;j++){
+                        if (j != i) {
+                            if (playersInGame[j].guess == playersInGame[i].guess){
+                                validGuess = false;
+                            }
+                        }
+                    }
+                } while (!validGuess);
+                window.alert(`${playersInGame[i].name} chutou ${playersInGame[i].guess}`);
+                console.log(`${playersInGame[i].name} chutou ${playersInGame[i].guess}`);
+                leftToPlay--;
+            }
+        }
+
+        if (playersInGame[k] == player){
+            //vai pedir um novo chute enquanto o chute não for válido
+            //chute não pode ser menor que 0, maior que a quantidade total de palitos ou igual a algum chute anterior
+            do {
+                validGuess = true;
+                playersInGame[k].guess = parseFloat(prompt('Digite seu chute'));
+                for (let j=0;j<playersInGame.length;j++){
+                    if (j != k){
+                        if (playersInGame[k].guess == playersInGame[j].guess){
+                            validGuess = false;
+                            window.alert('Alguém já chutou esse número!');
+                            console.log('Alguém já chutou esse número');
+                        }
+                    }
+                }
+                if (playersInGame[k].guess < 0){
+                    validGuess = false;
+                    window.alert('Você não pode chutar um número menor que 0.');
+                } 
+                else if (playersInGame[k].guess > palitosInTotal){
+                    validGuess = false;
+                    window.alert('Você não pode chutar um número maior que a quantidade total de palitos.');
+                }
+                else if (isNaN(playersInGame[k].guess)){
+                    validGuess = false;
+                    window.alert('Você só pode digitar números.');
+                }
+                else if (playersInGame[k].guess % 1 != 0){
+                    validGuess = false;
+                    window.alert('Você só pode digitar números inteiros.');
+                }
+            } while (!validGuess);
+            window.alert(`${playersInGame[k].name} chutou ${playersInGame[k].guess}`);
+        } 
+        else {
+            do {
+                validGuess = true;
+                playersInGame[k].guess = getRandomInt(playersInGame[k].holding, palitosInTotal);
+                for (let j=0;j<playersInGame.length;j++){
+                    if (j != k){
+                        if (playersInGame[j].guess == playersInGame[k].guess){
+                            validGuess = false;
+                        }
+                    }
+                }
+            } while (!validGuess);
+            window.alert(`${playersInGame[k].name} chutou ${playersInGame[k].guess}`);
+            console.log(`${playersInGame[k].name} chutou ${playersInGame[k].guess}`);
+        }
+        
+    }
+
+    let holdingTotal = 0;
+    for (let i=0;i<playersInGame.length;i++){
+        holdingTotal += playersInGame[i].holding;
+    } 
+
+    window.alert(`O total deu ${holdingTotal}!`);
+
+    let noWinnersInRound = true;
+    for (let i=0;i<playersInGame.length;i++){
+        if (playersInGame[i].guess == holdingTotal){
+            playersInGame[i].palitos -= 1;
+            palitosInTotal -= 1;
+            noWinnersInRound = false;
+            window.alert(`${playersInGame[i].name} venceu essa rodada!\n`+
+            `Agora tem ${palitosInTotal} em jogo`);
+            console.log(`${playersInGame[i].name} venceu essa rodada!\n`+
+            `Agora tem ${palitosInTotal} em jogo`);
+        }
+    }
+
+    if (noWinnersInRound){
+        window.alert('Ninguém venceu esse round.');
+        console.log('Ninguém venceu esse round.');
+    }
+
+    firstToPlay++; //0 -> 1 -> 2 -> 3
+    if (firstToPlay >= playersInGame.length){
+        firstToPlay = 0;
+    }
+
+    for(let i=0;i<playersInGame.length;i++){
+        playersInGame[i].guess = -1;
+    }
+
+    checkGameWinner();
+}
+
+//pega a quantidade que o jogador vai segurar na rodada
+function getPlayerHolding(palitos){
+    let holding;
+    do {
+
+        holding = parseFloat(prompt('Com quantos palitos você quer jogar?'));
+
+        if (isNaN(holding)){
+            window.alert('Inválido.');
+        } else if (holding > palitos){
+            window.alert(`Inválido. Você não possui ${holding} palitos.`);
+        } else if (holding < 0){
+            window.alert('Inválido. Você precisa digitar um número entre 0' 
+            + 'e a quantidade de palitos que possui');
+        } else if (holding % 1 != 0){
+            window.alert('Inválido. Você não pode digitar um número quebrado.');
+        }
+
+    } while (isNaN(holding) || holding > palitos || holding < 0 || holding % 1 != 0);
+    
+    return holding;
+}
+
+//pega a quantidade que a cpu vai segurar na rodada
+function getCpuHolding(palitos){
+    return getRandomInt(0, palitos)
+}
+
+//mostra as estatísticas do jogo ao pressionar botão
+function showStats(){
+    document.write(`O jogo teve um total de ${rounds} rodadas.<br>`);
+    document.write(`O(a) vencedor(a) foi o(a) jogador(a) ${gameWinner}.<br>`);
+    for (let i=0;i<playersInGame.length;i++){
+        document.write(`O(a) jogador(a) ${playersInGame[i].name} terminou com ${playersInGame[i].palitos} palitos.<br>`);
+    }
+}
+
+//retorna string com o primeiro caractere com letra maíuscula
+function capitalize(string){
+    return string[0].toUpperCase() + string.slice(1);
+}
+// ATiLa Atila
+//retorna um numero aleatorio min <= x <= max
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+</script>
